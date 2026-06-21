@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeepRain-Ops | Performance Reports</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans p-8">
+
+    <div class="max-w-6xl mx-auto">
+        <header class="flex justify-between items-end mb-10 border-b border-slate-800 pb-8">
+            <div>
+                <div class="flex items-center gap-2 mb-2">
+                    <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    <span class="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">Analytical Suite</span>
+                </div>
+                <h1 class="text-3xl font-black tracking-tighter text-white uppercase">Performance <span class="text-blue-500">Reports</span></h1>
+                <p class="text-slate-400 text-sm mt-1">Section 7.6 Operational Metrics & Accuracy Validation</p>
+            </div>
+            
+            <div class="flex gap-4">
+                <a href="/api/export_report" class="bg-slate-800 hover:bg-slate-700 text-white px-5 py-2.5 rounded text-xs font-bold transition-all border border-slate-700">
+                    EXPORT CSV
+                </a>
+                <a href="/" class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded text-xs font-bold transition-all shadow-lg shadow-blue-900/20">
+                    ← BACK TO DASHBOARD
+                </a>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-4 gap-4 mb-8">
+    <div class="bg-slate-900 border border-slate-800 p-5 rounded-lg">
+        <div class="text-[10px] text-slate-500 font-bold uppercase mb-1">Avg RMSE</div>
+        <div class="text-2xl font-mono text-green-400">{{ stats.rmse_val }}</div>
+    </div>
+    <div class="bg-slate-900 border border-slate-800 p-5 rounded-lg">
+        <div class="text-[10px] text-slate-500 font-bold uppercase mb-1">Relative Bias</div>
+        <div class="text-2xl font-mono text-blue-400">{{ stats.bias_val }}</div>
+    </div>
+    <div class="bg-slate-900 border border-slate-800 p-5 rounded-lg">
+        <div class="text-[10px] text-slate-500 font-bold uppercase mb-1">Network Parity</div>
+        <div class="text-2xl font-mono text-slate-200">{{ stats.parity_val }}</div>
+    </div>
+    <div class="bg-slate-900 border border-slate-800 p-5 rounded-lg">
+        <div class="text-[10px] text-slate-500 font-bold uppercase mb-1">System State</div>
+        <div class="text-2xl font-mono text-orange-400 uppercase text-lg">{{ stats.state }}</div>
+    </div>
+</div>
+        <div class="bg-slate-900 border border-slate-800 p-6 rounded-xl mb-8 shadow-2xl">
+            <h3 class="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-4">Live Performance Accuracy (Storm Front Comparison)</h3>
+            <div class="h-72">
+                <canvas id="performanceChart"></canvas>
+            </div>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-2xl">
+            <div class="px-6 py-4 bg-slate-800/50 border-b border-slate-800 flex justify-between items-center">
+                <h2 class="text-xs font-bold uppercase tracking-widest text-slate-300">Historical Ingestion Logs</h2>
+                <span class="text-[10px] text-slate-500 italic">Showing last 30 events</span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm" id="logs-table">
+                    <thead class="bg-slate-950 text-slate-500 text-[10px] uppercase font-black tracking-widest">
+                        <tr>
+                            <th class="px-6 py-4">Timestamp</th>
+                            <th class="px-6 py-4">Radar Site</th>
+                            <th class="px-6 py-4 text-right">Gauge (mm/hr)</th>
+                            <th class="px-6 py-4 text-right">DeepRain (mm/hr)</th>
+                            <th class="px-6 py-4 text-right">Error (RMSE)</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800 font-mono text-[12px]">
+                        {% if logs %}
+                            {% for log in logs %}
+                            <tr class="hover:bg-slate-800/30 transition-colors">
+                                <td class="px-6 py-3 text-slate-400">{{ log.timestamp }}</td>
+                                <td class="px-6 py-3 font-bold text-blue-400">{{ log.site_id }}</td>
+                                <td class="px-6 py-3 text-right">{{ log.gauge_mm_hr }}</td>
+                                <td class="px-6 py-3 text-right text-white">{{ log.dl_estimate }}</td>
+                                <td class="px-6 py-3 text-right text-green-500">{{ log.rmse_step }}</td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr id="empty-row">
+                                <td colspan="5" class="px-6 py-10 text-center text-slate-600 italic">
+                                    No records found. Run a simulation from the Dashboard to populate data.
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <footer class="mt-8 text-center">
+            <p class="text-[10px] text-slate-600 uppercase tracking-widest">DeepRain-Ops v7.6.2 &copy; 2026 Operational Meteorology Suite</p>
+        </footer>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const tableRows = Array.from(document.querySelectorAll('#logs-table tbody tr:not(#empty-row)'));
+        
+        if (tableRows.length === 0) return;
+
+        // Extract and reverse data for chronological plotting
+        const labels = tableRows.map(row => row.cells[0].innerText.split(' ')[1]).reverse();
+        const gaugeData = tableRows.map(row => parseFloat(row.cells[2].innerText)).reverse();
+        const aiData = tableRows.map(row => parseFloat(row.cells[3].innerText)).reverse();
+
+        const ctx = document.getElementById('performanceChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Gauge Truth (mm/hr)',
+                        data: gaugeData,
+                        borderColor: '#64748b',
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        tension: 0.4
+                    },
+                    {
+                        label: 'DeepRain AI Estimate',
+                        data: aiData,
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        fill: true,
+                        borderWidth: 3,
+                        pointRadius: 2,
+                        tension: 0.4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { labels: { color: '#94a3b8', font: { size: 10, weight: 'bold' } } }
+                },
+                scales: {
+                    y: { 
+                        beginAtZero: true,
+                        grid: { color: '#1e293b' }, 
+                        ticks: { color: '#64748b', font: { family: 'monospace' } } 
+                    },
+                    x: { 
+                        grid: { display: false }, 
+                        ticks: { color: '#64748b', font: { size: 9 } } 
+                    }
+                }
+            }
+        });
+    });
+    </script>
+</body>
+</html>

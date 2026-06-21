@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeepRain-Ops | Operational Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="h-screen flex flex-col overflow-hidden bg-slate-900 text-slate-100 font-sans">
+
+    <header class="bg-slate-800 border-b border-slate-700 px-6 py-3 flex justify-between items-center shadow-xl z-10">
+        <div class="flex items-center gap-6">
+            <div class="flex items-center gap-3">
+                <div class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                <h1 class="font-bold text-lg tracking-tight text-white uppercase">
+                    Deep<span class="text-blue-500">Rain</span>-Ops
+                </h1>
+            </div>
+            <nav class="flex gap-4 text-[10px] font-bold uppercase tracking-widest ml-4">
+                <a href="/" class="text-blue-400 border-b-2 border-blue-400 pb-1">Dashboard</a>
+                <a href="/reports" class="text-slate-400 hover:text-white transition">Reports</a>
+            </nav>
+        </div>
+        <div class="flex gap-6 text-[10px] text-slate-400 font-mono">
+            <div>DB_STATUS: <span class="text-green-400">CONNECTED</span></div>
+            <div>SYS_MODE: <span class="text-blue-400">STORM_PULSE_SIM</span></div>
+        </div>
+    </header>
+
+    <div class="flex-1 grid grid-cols-12 overflow-hidden">
+        
+        <section class="col-span-8 bg-slate-950 relative border-r border-slate-800">
+            <div class="radar-sweep"></div>
+            
+            <div class="absolute inset-0 flex items-center justify-center">
+                <div class="text-slate-900 text-9xl font-black select-none tracking-tighter opacity-20 uppercase">Radar View</div>
+                
+                <div class="uncertainty-hatch absolute top-1/4 right-1/4 w-72 h-56 flex items-end p-2 border border-red-500/30">
+                    <span class="text-[9px] font-bold text-red-500 bg-black/90 px-2 py-1 italic rounded uppercase tracking-tighter">
+                        Zone: Beam Blockage Detected (Correction Applied)
+                    </span>
+                </div>
+            </div>
+
+            <div class="absolute bottom-6 left-6 bg-slate-900/95 border border-slate-700 p-4 rounded-lg shadow-2xl max-w-xs backdrop-blur-md">
+                <h3 class="text-[10px] font-bold text-blue-400 mb-1 uppercase tracking-widest">Multi-Radar Fusion</h3>
+                <p class="text-[11px] text-slate-400 leading-tight">
+                    Integrating S-Band and C-Band datasets. 
+                    <span class="text-green-400">Blind spot recovery active (+65%)</span>.
+                </p>
+            </div>
+        </section>
+
+        <aside class="col-span-4 bg-slate-900 flex flex-col border-l border-slate-800 overflow-y-auto">
+            
+            <div class="p-6 bg-blue-900/10 border-b border-slate-800">
+                <h2 class="text-[10px] font-bold text-blue-400 uppercase mb-3 tracking-widest">Storm Event Simulation</h2>
+                <button onclick="runSimulation()" id="simBtn" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 rounded text-[11px] font-bold transition-all shadow-lg active:scale-95">
+                    GENERATE 30-HOUR STORM PULSE
+                </button>
+                <p class="text-[9px] text-slate-500 mt-2 italic text-center">Simulates a Gaussian rainfall distribution in the database.</p>
+            </div>
+
+            <div class="p-6 border-b border-slate-800">
+                <h2 class="text-xs font-bold mb-4 flex justify-between items-center text-slate-300">
+                    RADAR PRIORITY (ALTITUDE)
+                    <span class="text-[9px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded border border-slate-700 font-mono">4/3_EARTH_MOD</span>
+                </h2>
+                <div id="radar-list" class="space-y-2">
+                    <div class="animate-pulse bg-slate-800 h-10 rounded"></div>
+                    <div class="animate-pulse bg-slate-800 h-10 rounded"></div>
+                </div>
+            </div>
+
+            <div class="p-6 border-b border-slate-800">
+                <h2 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">Deep Learning Inputs</h2>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-slate-950 p-2 rounded border border-slate-800">
+                        <div class="text-[9px] text-slate-500">KDP (deg/km)</div>
+                        <div class="text-sm font-mono text-green-400">1.24</div>
+                    </div>
+                    <div class="bg-slate-950 p-2 rounded border border-slate-800">
+                        <div class="text-[9px] text-slate-500">ZDR (dB)</div>
+                        <div class="text-sm font-mono text-blue-400">2.15</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-6 mt-auto bg-slate-800/40 border-t border-slate-800">
+                <div class="mb-4">
+                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Manual Ingestion (mm/hr)</label>
+                    <input type="number" id="manual-estimate" step="0.1" value="18.2" 
+                        class="w-full bg-slate-950 border border-slate-700 rounded p-3 text-2xl font-mono mt-1 text-blue-400 focus:border-blue-500 outline-none transition-all">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <button onclick="submitDecision('ZR')" class="bg-slate-700 hover:bg-slate-600 text-white text-[11px] font-bold py-3 rounded transition-all">
+                        USE Z-R (TRAD)
+                    </button>
+                    <button onclick="submitDecision('DL')" class="bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-bold py-3 rounded shadow-lg shadow-blue-900/20 transition-all">
+                        CONFIRM DL
+                    </button>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+</body>
+</html>
