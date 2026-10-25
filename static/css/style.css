@@ -1,0 +1,54 @@
+/* DeepRain-Ops Meteorological UI Styles */
+
+:root {
+    --radar-glow: rgba(59, 130, 246, 0.5);
+    --uncertainty-red: rgba(239, 68, 68, 0.2);
+}
+
+body {
+    background-color: #0f172a; /* Slate-900 */
+    color: #f1f5f9;
+}
+
+/* 7.5.1 Component 1: Uncertainty Overlay Pattern (Cross-hatching) */
+.uncertainty-hatch {
+    background: repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 10px,
+        var(--uncertainty-red) 10px,
+        var(--uncertainty-red) 20px
+    );
+    border: 2px dashed #ef4444;
+    pointer-events: none;
+}
+
+/* Radar Sweep Animation for Visual Feedback */
+.radar-sweep {
+    position: absolute;
+    width: 200%;
+    height: 200%;
+    background: conic-gradient(from 0deg, transparent, var(--radar-glow));
+    animation: rotate 4s linear infinite;
+    top: -50%;
+    left: -50%;
+    opacity: 0.1;
+}
+
+@keyframes rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Progress bar for Quality Weights (Section 7.3.1) */
+.weight-bar {
+    transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #334155;
+    border-radius: 10px;
+}
